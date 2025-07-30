@@ -1,0 +1,1119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API-Dost: Standalone API Tester</title>
+    <style>
+        /* ============================================= */
+        /* --- 1. THEME AND GENERAL STYLES --- */
+        /* ============================================= */
+        :root {
+            /* Hacker Theme Color Palette */
+            --bg-dark: #0d0d0d;
+            --surface-dark: #1a1a1a;
+            --primary: #00ff7f; /* Spring Green */
+            --secondary: #00bfff; /* Deep Sky Blue */
+            --text-light: #e0e0e0;
+            --border-color: #333;
+            --error: #ff4136; /* Red */
+            --success: #3d9970; /* Olive */
+            --glow-color: rgba(0, 255, 127, 0.3);
+        }
+
+        html {
+            box-sizing: border-box;
+        }
+        *, *:before, *:after {
+            box-sizing: inherit;
+        }
+
+        body {
+            font-family: 'Courier New', Courier, monospace;
+            background-color: var(--bg-dark);
+            color: var(--text-light);
+            margin: 0;
+            height: 100vh;
+            overflow: hidden;
+            text-shadow: 0 0 3px var(--glow-color);
+        }
+
+        .main-container {
+            display: flex;
+            height: 100%;
+        }
+
+        /* ============================================= */
+        /* --- 2. SIDEBAR STYLES (Left Panel) --- */
+        /* ============================================= */
+        .sidebar {
+            width: 250px;
+            flex-shrink: 0; /* Prevent sidebar from shrinking */
+            background-color: var(--surface-dark);
+            border-right: 1px solid var(--border-color);
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        .sidebar h2 {
+            color: var(--primary);
+            margin-top: 0;
+            font-size: 1.2em;
+            text-shadow: 0 0 5px var(--primary);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        #collections-list, #history-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            overflow-y: auto;
+        }
+        #collections-list { flex-grow: 1; }
+        #history-list { min-height: 150px; } /* Min-height for history */
+
+        .collection-item, .history-item {
+            padding: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border: 1px solid transparent;
+            word-break: break-all;
+        }
+        .collection-item:hover, .history-item:hover {
+            background-color: #2c2c2c;
+            border-color: var(--primary);
+        }
+        .collection-item .method, .history-item .method {
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+        .method-GET { color: var(--success); }
+        .method-POST { color: var(--secondary); }
+        .method-PUT { color: #f9a825; }
+        .method-DELETE { color: var(--error); }
+        
+        .collection-controls button {
+            background: none; border: none; color: var(--secondary); cursor: pointer; font-size: 0.9em;
+        }
+        
+        .environment-section {
+            margin-top: 15px;
+            border-top: 1px solid var(--border-color);
+            padding-top: 15px;
+        }
+
+        #environment-select {
+            width: 100%;
+            padding: 8px;
+            background-color: #3c3c3c;
+            color: var(--text-light);
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+
+        .sidebar-actions {
+            margin-top: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .sidebar-actions button {
+            padding: 10px;
+            border: 1px solid var(--primary);
+            border-radius: 5px;
+            font-weight: bold;
+            cursor: pointer;
+            background: none;
+            color: var(--primary);
+            transition: background-color 0.3s, color 0.3s;
+        }
+        .sidebar-actions button:hover {
+            background-color: var(--primary);
+            color: var(--bg-dark);
+        }
+        #run-collection-btn:disabled { background-color: #555; cursor: not-allowed; border-color: #555; color: #888; }
+
+
+        /* ============================================= */
+        /* --- 3. MAIN CONTENT STYLES (Right Panel) --- */
+        /* ============================================= */
+        .main-content {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 15px;
+            overflow-y: auto;
+        }
+
+        /* Request Pane (Top half of main content) */
+        .request-pane {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .url-bar {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap; /* Allow wrapping on small screens */
+        }
+
+        #method-select {
+            padding: 10px;
+            background-color: #3c3c3c;
+            color: var(--text-light);
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            font-size: 1em;
+        }
+
+        #url-input {
+            flex-grow: 1;
+            min-width: 200px;
+            padding: 10px;
+            background-color: #2c2c2c;
+            color: var(--text-light);
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            font-size: 1em;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .action-buttons button {
+            padding: 10px 20px;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        #save-btn { background-color: var(--secondary); color: #121212; }
+        #send-btn { background-color: var(--primary); color: #121212; }
+        #send-btn:hover { background-color: #32cd32; }
+        #send-btn:disabled { background-color: #555; cursor: not-allowed; }
+
+        /* Styles for the tab system (Body, Auth, Tests) */
+        .tabs { display: flex; gap: 5px; border-bottom: 1px solid var(--border-color); }
+        .tab-button {
+            padding: 8px 15px;
+            background: none;
+            border: none;
+            color: #888;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+        }
+        .tab-button.active {
+            color: var(--secondary);
+            border-bottom-color: var(--secondary);
+        }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        
+        .request-details-pane {
+            background-color: var(--surface-dark);
+            border: 1px solid var(--border-color);
+            border-top: none;
+            border-radius: 0 0 5px 5px;
+            padding: 15px;
+        }
+
+        .auth-options select {
+            width: 100%;
+            padding: 8px;
+            background-color: #3c3c3c;
+            color: var(--text-light);
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+        .auth-inputs div { margin-bottom: 10px; }
+        .auth-inputs input {
+            width: 100%;
+            padding: 8px;
+            background-color: #2c2c2c;
+            color: var(--text-light);
+            border: 1px solid var(--border-color);
+            box-sizing: border-box;
+        }
+
+        textarea {
+            width: 100%;
+            background-color: #2c2c2c;
+            color: var(--text-light);
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            resize: vertical;
+            font-family: 'Courier New', Courier, monospace;
+            box-sizing: border-box;
+        }
+        #request-body, #test-script-input { height: 120px; }
+        
+        .tests-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 10px; }
+        .tests-header p { margin: 0; font-size: 0.9em; color: #888; }
+        #ai-generate-tests-btn {
+            background: none; border: 1px solid var(--secondary); color: var(--secondary);
+            padding: 5px 10px; border-radius: 4px; cursor: pointer;
+        }
+        #ai-generate-tests-btn:disabled { background-color: #555; border-color: #555; color: #888; }
+
+        /* Response Pane (Bottom half of main content) */
+        .response-pane {
+            flex-grow: 1;
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            min-height: 250px; /* Ensure it has a minimum height */
+        }
+        
+        .response-header {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            margin-bottom: 10px;
+            padding: 0 15px;
+            flex-wrap: wrap;
+        }
+        
+        #status-code {
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        
+        #ai-explain-btn {
+            background: none; border: 1px solid var(--secondary); color: var(--secondary);
+            padding: 5px 10px; border-radius: 4px; cursor: pointer;
+        }
+        #ai-explain-btn:disabled { display: none; }
+
+        #response-body-tab, #tests-tab {
+             flex-grow: 1;
+             display: flex;
+             flex-direction: column;
+        }
+
+        #response-body, #test-script-input {
+            flex-grow: 1;
+            width: 100%;
+            resize: none;
+            white-space: pre;
+            overflow-wrap: normal;
+            overflow-x: auto;
+        }
+
+        /* ============================================= */
+        /* --- 4. MODAL STYLES (Pop-ups) --- */
+        /* ============================================= */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+        .modal-content {
+            background-color: var(--surface-dark);
+            padding: 25px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .modal-content h3 { margin-top: 0; color: var(--secondary); }
+        .modal-content input, .modal-content textarea {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            box-sizing: border-box;
+            background-color: #2c2c2c;
+            color: var(--text-light);
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+        }
+        .modal-content textarea { resize: vertical; min-height: 80px; }
+        .modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
+        .modal-actions button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        #confirm-save-btn, #confirm-ai-btn { background-color: var(--primary); color: #121212; }
+        #cancel-save-btn, #cancel-ai-btn, #close-report-btn, #close-explain-btn { background-color: #555; color: white; }
+        
+        /* Automation Report Styles */
+        #report-summary { display: flex; justify-content: space-around; margin-bottom: 15px; }
+        #report-results { list-style: none; padding: 0; margin: 0; overflow-y: auto; }
+        .report-item { display: flex; justify-content: space-between; padding: 8px; border-bottom: 1px solid var(--border-color); }
+        .report-item-passed { color: var(--success); }
+        .report-item-failed { color: var(--error); }
+        #explanation-content {
+            white-space: pre-wrap;
+            overflow-y: auto;
+        }
+        
+        /* ============================================= */
+        /* --- 5. RESPONSIVE DESIGN (For Mobile/Tablet) --- */
+        /* ============================================= */
+        @media (max-width: 900px) {
+            .main-container { flex-direction: column; overflow: auto; }
+            .sidebar { width: 100%; height: auto; border-right: none; border-bottom: 1px solid var(--border-color); flex-shrink: 0; }
+            .main-content { overflow: visible; }
+            .response-pane { min-height: 400px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="main-container">
+        <!-- The left sidebar for saved requests, environments, and actions -->
+        <div class="sidebar">
+            <h2>
+                <span>Collections</span>
+                <div class="collection-controls">
+                    <button id="import-btn" title="Import Collection">📥</button>
+                    <button id="export-btn" title="Export Collection">📤</button>
+                </div>
+            </h2>
+            <ul id="collections-list"></ul>
+            <div class="environment-section">
+                <h2>Environment</h2>
+                <select id="environment-select">
+                    <option value="">No Environment</option>
+                </select>
+            </div>
+            <div class="sidebar-actions">
+                <button id="run-collection-btn">Run Collection</button>
+                <button id="ai-generate-btn">Generate with AI</button>
+            </div>
+             <h2 style="margin-top: 15px;">History</h2>
+            <ul id="history-list"></ul>
+        </div>
+        <!-- The main area for creating requests and seeing responses -->
+        <div class="main-content">
+            <!-- Top section for building the API request -->
+            <div class="request-pane">
+                <div class="url-bar">
+                    <select id="method-select">
+                        <option>GET</option>
+                        <option>POST</option>
+                        <option>PUT</option>
+                        <option>DELETE</option>
+                    </select>
+                    <input type="text" id="url-input" value="{{baseURL}}/todos/1" placeholder="Enter API URL or use {{variable}}">
+                    <div class="action-buttons">
+                        <button id="save-btn">Save</button>
+                        <button id="send-btn">Send</button>
+                    </div>
+                </div>
+                <div class="tabs" id="request-tabs">
+                    <button class="tab-button active" data-tab="body">Body</button>
+                    <button class="tab-button" data-tab="auth">Auth</button>
+                </div>
+                <div class="request-details-pane">
+                    <div id="body-tab" class="tab-content active">
+                        <h3>Request Body (JSON)</h3>
+                        <textarea id="request-body" placeholder='{ "key": "value" }'></textarea>
+                    </div>
+                    <div id="auth-tab" class="tab-content">
+                        <h3>Authentication</h3>
+                        <div class="auth-options">
+                            <select id="auth-type-select">
+                                <option value="none">No Auth</option>
+                                <option value="api-key">API Key</option>
+                                <option value="bearer">Bearer Token</option>
+                            </select>
+                        </div>
+                        <div class="auth-inputs">
+                            <div id="api-key-inputs" style="display: none;">
+                                <input type="text" id="api-key-header" placeholder="Header Name (e.g., X-API-Key)">
+                                <input type="text" id="api-key-value" placeholder="API Key Value">
+                            </div>
+                            <div id="bearer-inputs" style="display: none;">
+                                <input type="text" id="bearer-token" placeholder="Bearer Token">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bottom section for viewing the API response -->
+            <div class="response-pane">
+                 <div class="tabs" id="response-tabs">
+                    <button class="tab-button active" data-tab="response-body">Body</button>
+                    <button class="tab-button" data-tab="tests">Tests</button>
+                </div>
+                <div class="response-header">
+                    <span id="status-code"></span>
+                    <button id="ai-explain-btn" disabled>✨ Explain Response</button>
+                </div>
+                <div id="response-body-tab" class="tab-content active">
+                    <textarea id="response-body" readonly></textarea>
+                </div>
+                <div id="tests-tab" class="tab-content">
+                     <div class="tests-header">
+                        <p>Automatically verify your response here.</p>
+                        <button id="ai-generate-tests-btn" disabled>✨ Generate Tests with AI</button>
+                     </div>
+                     <textarea id="test-script-input" placeholder="// Example: check(status === 200);&#10;// Example: check(data.userId === 1);"></textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- All the pop-up modals used in the application -->
+    <div id="save-modal-overlay" class="modal-overlay">
+        <div class="modal-content">
+            <h3>Save Request</h3>
+            <label for="request-name-input">Request Name:</label>
+            <input type="text" id="request-name-input" placeholder="e.g., Get User Details">
+            <div class="modal-actions">
+                <button id="cancel-save-btn">Cancel</button>
+                <button id="confirm-save-btn">Save</button>
+            </div>
+        </div>
+    </div>
+    <div id="ai-modal-overlay" class="modal-overlay">
+        <div class="modal-content">
+            <h3>Generate Test with AI</h3>
+            <label for="ai-prompt-input">Describe the test you want to create:</label>
+            <textarea id="ai-prompt-input" placeholder="e.g., Create a POST request to add a new blog post."></textarea>
+            <div class="modal-actions">
+                <button id="cancel-ai-btn">Cancel</button>
+                <button id="confirm-ai-btn">Generate</button>
+            </div>
+        </div>
+    </div>
+    <div id="report-modal-overlay" class="modal-overlay">
+        <div class="modal-content">
+            <h3>Automation Run Report</h3>
+            <div id="report-summary">
+                <p>Total Tests: <span id="total-tests"></span></p>
+                <p class="report-item-passed">Passed: <span id="passed-tests"></span></p>
+                <p class="report-item-failed">Failed: <span id="failed-tests"></span></p>
+            </div>
+            <ul id="report-results"></ul>
+            <div class="modal-actions">
+                <button id="close-report-btn">Close</button>
+            </div>
+        </div>
+    </div>
+    <div id="explain-modal-overlay" class="modal-overlay">
+        <div class="modal-content">
+            <h3>AI Explanation</h3>
+            <div id="explanation-content"></div>
+            <div class="modal-actions">
+                <button id="close-explain-btn">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden file input for import feature -->
+    <input type="file" id="import-file-input" accept=".json" style="display: none;">
+
+    <script type="module">
+        // This is a standalone version that uses Local Storage instead of Firebase.
+        // All collaboration features have been removed to prevent live server errors.
+
+        // --- 1. DOM ELEMENTS ---
+        // A single object to hold references to all HTML elements we need to interact with.
+        const dom = {
+            methodSelect: document.getElementById('method-select'),
+            urlInput: document.getElementById('url-input'),
+            sendBtn: document.getElementById('send-btn'),
+            saveBtn: document.getElementById('save-btn'),
+            requestBody: document.getElementById('request-body'),
+            responseBody: document.getElementById('response-body'),
+            statusCodeEl: document.getElementById('status-code'),
+            collectionsList: document.getElementById('collections-list'),
+            saveModal: document.getElementById('save-modal-overlay'),
+            requestNameInput: document.getElementById('request-name-input'),
+            confirmSaveBtn: document.getElementById('confirm-save-btn'),
+            cancelSaveBtn: document.getElementById('cancel-save-btn'),
+            aiGenerateBtn: document.getElementById('ai-generate-btn'),
+            aiModal: document.getElementById('ai-modal-overlay'),
+            aiPromptInput: document.getElementById('ai-prompt-input'),
+            confirmAiBtn: document.getElementById('confirm-ai-btn'),
+            cancelAiBtn: document.getElementById('cancel-ai-btn'),
+            runCollectionBtn: document.getElementById('run-collection-btn'),
+            reportModal: document.getElementById('report-modal-overlay'),
+            totalTestsEl: document.getElementById('total-tests'),
+            passedTestsEl: document.getElementById('passed-tests'),
+            failedTestsEl: document.getElementById('failed-tests'),
+            reportResultsEl: document.getElementById('report-results'),
+            closeReportBtn: document.getElementById('close-report-btn'),
+            environmentSelect: document.getElementById('environment-select'),
+            authTypeSelect: document.getElementById('auth-type-select'),
+            apiKeyInputs: document.getElementById('api-key-inputs'),
+            apiKeyHeader: document.getElementById('api-key-header'),
+            apiKeyValue: document.getElementById('api-key-value'),
+            bearerInputs: document.getElementById('bearer-inputs'),
+            bearerToken: document.getElementById('bearer-token'),
+            testScriptInput: document.getElementById('test-script-input'),
+            requestTabs: document.getElementById('request-tabs'),
+            responseTabs: document.getElementById('response-tabs'),
+            aiGenerateTestsBtn: document.getElementById('ai-generate-tests-btn'),
+            aiExplainBtn: document.getElementById('ai-explain-btn'),
+            explainModal: document.getElementById('explain-modal-overlay'),
+            explanationContent: document.getElementById('explanation-content'),
+            closeExplainBtn: document.getElementById('close-explain-btn'),
+            historyList: document.getElementById('history-list'),
+            importBtn: document.getElementById('import-btn'),
+            exportBtn: document.getElementById('export-btn'),
+            importFileInput: document.getElementById('import-file-input'),
+        };
+
+        // --- 2. STATE MANAGEMENT ---
+        // Variables that hold the application's data.
+        let collections = []; // Array to store saved API requests.
+        let history = []; // Array to store recent API requests.
+        let environments = [
+            { name: "JSONPlaceholder (Public)", variables: { baseURL: "https://jsonplaceholder.typicode.com" } },
+            { name: "Dictionary API (Public)", variables: { baseURL: "https://api.dictionaryapi.dev/api/v2/entries/en" } }
+        ];
+        let activeEnvironment = environments[0]; // The currently selected environment.
+        let lastResponse = null; // Stores the most recent API response for AI features.
+
+        // --- 3. LOCAL STORAGE (Data Persistence) ---
+        // Functions to save and load data from the user's browser.
+        function loadCollectionsFromStorage() {
+            const stored = localStorage.getItem('apiDostCollections');
+            collections = stored ? JSON.parse(stored) : [];
+            renderCollections();
+        }
+
+        function saveCollectionsToStorage() {
+            localStorage.setItem('apiDostCollections', JSON.stringify(collections));
+        }
+
+        // --- 4. CORE FUNCTIONS ---
+        // The main logic of the application.
+
+        /**
+         * Sets up the click events for a tab group (e.g., Body/Auth).
+         * @param {HTMLElement} tabContainer - The container element for the tab buttons.
+         */
+        function setupTabs(tabContainer) {
+            const tabButtons = tabContainer.querySelectorAll('.tab-button');
+            const parentPane = tabContainer.closest('.request-pane, .response-pane');
+            
+            tabButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    tabButtons.forEach(btn => btn.classList.remove('active'));
+                    button.classList.add('active');
+                    
+                    const tabContents = parentPane.querySelectorAll('.tab-content');
+                    tabContents.forEach(content => {
+                        content.classList.remove('active');
+                        if (content.id === `${button.dataset.tab}-tab`) {
+                            content.classList.add('active');
+                        }
+                    });
+                });
+            });
+        }
+
+        /**
+         * Populates the environment dropdown with available environments.
+         */
+        function renderEnvironments() {
+            dom.environmentSelect.innerHTML = '<option value="">No Environment</option>';
+            environments.forEach((env, index) => {
+                const option = document.createElement('option');
+                option.value = index;
+                option.textContent = env.name;
+                dom.environmentSelect.appendChild(option);
+            });
+            dom.environmentSelect.value = environments.indexOf(activeEnvironment);
+        }
+
+        /**
+         * Replaces variables like {{baseURL}} in the URL with their actual values.
+         * @param {string} url - The URL string with potential variables.
+         * @returns {string} The resolved URL.
+         */
+        function resolveUrl(url) {
+            if (!activeEnvironment) return url;
+            let resolved = url;
+            for (const key in activeEnvironment.variables) {
+                const regex = new RegExp(`\\{\\{${key}\\}\\}`, 'g');
+                resolved = resolved.replace(regex, activeEnvironment.variables[key]);
+            }
+            return resolved;
+        }
+
+        /**
+         * Renders the list of saved requests in the sidebar.
+         */
+        function renderCollections() {
+            dom.collectionsList.innerHTML = '';
+            collections.forEach((req, index) => {
+                const li = document.createElement('li');
+                li.className = 'collection-item';
+                li.dataset.index = index;
+                li.innerHTML = `<span class="method method-${req.method}">${req.method}</span><span>${req.name}</span>`;
+                dom.collectionsList.appendChild(li);
+            });
+        }
+        
+        /**
+         * Renders the list of recent requests in the history panel.
+         */
+        function renderHistory() {
+            dom.historyList.innerHTML = '';
+            history.forEach((req, index) => {
+                const li = document.createElement('li');
+                li.className = 'history-item';
+                li.dataset.index = index;
+                li.innerHTML = `<span class="method method-${req.method}">${req.method}</span><span>${req.url.substring(0, 15)}...</span>`;
+                dom.historyList.appendChild(li);
+            });
+        }
+        
+        /**
+         * Adds a request to the history list.
+         * @param {object} req - The request object to add.
+         */
+        function addToHistory(req) {
+            history.unshift(req); // Add to the beginning
+            if (history.length > 20) {
+                history.pop(); // Keep list size to 20
+            }
+            renderHistory();
+        }
+
+        function hideSaveModal() {
+            dom.saveModal.style.display = 'none';
+            dom.requestNameInput.value = '';
+        }
+
+        function hideAiModal() {
+            dom.aiModal.style.display = 'none';
+            dom.aiPromptInput.value = '';
+        }
+
+        /**
+         * Executes a single API request using fetch.
+         * @param {object} req - The request object containing URL, method, body, etc.
+         * @returns {Promise<object>} A promise that resolves to a response object.
+         */
+        async function runSingleRequest(req) {
+            const resolvedUrl = resolveUrl(req.url);
+            const headers = { 'Content-Type': 'application/json' };
+
+            if(req.auth) {
+                if (req.auth.type === 'api-key' && req.auth.header && req.auth.value) {
+                    headers[req.auth.header] = req.auth.value;
+                } else if (req.auth.type === 'bearer' && req.auth.token) {
+                    headers['Authorization'] = `Bearer ${req.auth.token}`;
+                }
+            }
+
+            const options = { method: req.method, headers };
+
+            if (['POST', 'PUT'].includes(req.method) && req.body) {
+                try {
+                    options.body = JSON.stringify(JSON.parse(req.body));
+                } catch (e) {
+                    return { ok: false, status: 'Client Error', statusText: 'Invalid JSON Body' };
+                }
+            }
+            try {
+                const response = await fetch(resolvedUrl, options);
+                const responseData = await response.json();
+                return { ok: response.ok, status: response.status, statusText: response.statusText, data: responseData };
+            } catch (error) {
+                return { ok: false, status: 'Network Error', statusText: error.message, data: null };
+            }
+        }
+        
+        /**
+         * Runs test assertions written in the 'Tests' tab.
+         * @param {string} script - The test script to execute.
+         * @param {object} response - The raw response object.
+         * @param {object} data - The JSON data from the response.
+         * @returns {object} An object with counts of passed and failed tests.
+         */
+        function runTests(script, response, data) {
+            if (!script) return { passed: 0, failed: 0 };
+            let passed = 0, failed = 0;
+            const checks = script.match(/check\((.*)\);/g) || [];
+            
+            checks.forEach(checkStr => {
+                try {
+                    const condition = checkStr.replace('check(', '').replace(');', '');
+                    // Safe evaluation using Function constructor to prevent security risks.
+                    const testFn = new Function('status', 'data', `return ${condition}`);
+                    if (testFn(response.status, data)) {
+                        passed++;
+                    } else {
+                        failed++;
+                    }
+                } catch (e) {
+                    failed++;
+                }
+            });
+            return { passed, failed };
+        }
+
+        // --- 5. EVENT LISTENERS ---
+        // Attaching functions to be called when the user interacts with the UI.
+
+        dom.environmentSelect.addEventListener('change', (e) => {
+            const index = e.target.value;
+            activeEnvironment = index ? environments[index] : null;
+        });
+
+        dom.saveBtn.addEventListener('click', () => {
+            dom.saveModal.style.display = 'flex';
+            dom.requestNameInput.focus();
+        });
+        dom.cancelSaveBtn.addEventListener('click', hideSaveModal);
+
+        dom.confirmSaveBtn.addEventListener('click', () => {
+            const name = dom.requestNameInput.value;
+            if (name) {
+                const newRequest = {
+                    name,
+                    method: dom.methodSelect.value,
+                    url: dom.urlInput.value,
+                    body: dom.requestBody.value,
+                    auth: {
+                        type: dom.authTypeSelect.value,
+                        header: dom.apiKeyHeader.value,
+                        value: dom.apiKeyValue.value,
+                        token: dom.bearerToken.value,
+                    },
+                    tests: dom.testScriptInput.value
+                };
+                collections.push(newRequest);
+                saveCollectionsToStorage();
+                renderCollections();
+                hideSaveModal();
+            }
+        });
+
+        dom.aiGenerateBtn.addEventListener('click', () => {
+            dom.aiModal.style.display = 'flex';
+            dom.aiPromptInput.focus();
+        });
+        dom.cancelAiBtn.addEventListener('click', hideAiModal);
+
+        dom.confirmAiBtn.addEventListener('click', async () => {
+            const userPrompt = dom.aiPromptInput.value;
+            if (!userPrompt) return;
+
+            dom.confirmAiBtn.disabled = true;
+            dom.confirmAiBtn.textContent = 'Generating...';
+
+            const systemPrompt = `You are an API testing expert. Based on the user's request, generate a JSON object for an API test. Use the public API from jsonplaceholder.typicode.com. The JSON object must have three keys: "method" (GET, POST, PUT, DELETE), "url", and "body" (as a JSON string, or an empty string if not applicable). Example Request: "create a test for a new post". Example Response: {"method": "POST", "url": "https://jsonplaceholder.typicode.com/posts", "body": "{\\"title\\":\\"foo\\",\\"body\\":\\"bar\\",\\"userId\\":1}"}. User Request: "${userPrompt}"`;
+
+            try {
+                const chatHistory = [{ role: "user", parts: [{ text: systemPrompt }] }];
+                const payload = { contents: chatHistory };
+                const apiKey = "";
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) throw new Error(`API Error: ${response.status}`);
+                
+                const result = await response.json();
+                const rawText = result.candidates[0].content.parts[0].text;
+                
+                const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+                if (!jsonMatch) {
+                    throw new Error("AI did not return a valid JSON object in its response.");
+                }
+                const jsonText = jsonMatch[0];
+                const aiResponse = JSON.parse(jsonText);
+
+                dom.methodSelect.value = aiResponse.method;
+                dom.urlInput.value = aiResponse.url;
+                
+                try {
+                    dom.requestBody.value = JSON.stringify(JSON.parse(aiResponse.body), null, 2);
+                } catch {
+                    dom.requestBody.value = aiResponse.body;
+                }
+                
+                hideAiModal();
+
+            } catch (error) {
+                alert(`AI Error: ${error.message}`);
+                console.error("AI Generation Error:", error);
+            } finally {
+                dom.confirmAiBtn.disabled = false;
+                dom.confirmAiBtn.textContent = 'Generate';
+            }
+        });
+
+        dom.runCollectionBtn.addEventListener('click', async () => {
+            if (collections.length === 0) {
+                alert("No requests in the collection to run.");
+                return;
+            }
+
+            dom.runCollectionBtn.disabled = true;
+            dom.runCollectionBtn.textContent = 'Running...';
+
+            let passed = 0;
+            let failed = 0;
+            dom.reportResultsEl.innerHTML = '';
+
+            for (const req of collections) {
+                const response = await runSingleRequest(req);
+                const testResults = runTests(req.tests, response, response.data);
+                const isPass = response.ok && testResults.failed === 0;
+
+                const li = document.createElement('li');
+                li.className = 'report-item';
+                if (isPass) {
+                    passed++;
+                    li.classList.add('report-item-passed');
+                    li.innerHTML = `<span>${req.name}</span><span>PASSED (${response.status})</span>`;
+                } else {
+                    failed++;
+                    li.classList.add('report-item-failed');
+                    li.innerHTML = `<span>${req.name}</span><span>FAILED (${response.status})</span>`;
+                }
+                dom.reportResultsEl.appendChild(li);
+            }
+
+            dom.totalTestsEl.textContent = collections.length;
+            dom.passedTestsEl.textContent = passed;
+            dom.failedTestsEl.textContent = failed;
+            dom.reportModal.style.display = 'flex';
+
+            dom.runCollectionBtn.disabled = false;
+            dom.runCollectionBtn.textContent = 'Run Collection';
+        });
+
+        dom.closeReportBtn.addEventListener('click', () => {
+            dom.reportModal.style.display = 'none';
+        });
+        
+        dom.closeExplainBtn.addEventListener('click', () => {
+            dom.explainModal.style.display = 'none';
+        });
+
+        dom.collectionsList.addEventListener('click', (e) => {
+            const item = e.target.closest('.collection-item');
+            if (item) {
+                const index = parseInt(item.dataset.index);
+                const savedReq = collections[index];
+                if (savedReq) {
+                    dom.methodSelect.value = savedReq.method;
+                    dom.urlInput.value = savedReq.url;
+                    dom.requestBody.value = savedReq.body || '';
+                    dom.testScriptInput.value = savedReq.tests || '';
+                    
+                    const auth = savedReq.auth || { type: 'none' };
+                    dom.authTypeSelect.value = auth.type;
+                    dom.apiKeyHeader.value = auth.header || '';
+                    dom.apiKeyValue.value = auth.value || '';
+                    dom.bearerToken.value = auth.token || '';
+                    dom.authTypeSelect.dispatchEvent(new Event('change'));
+                }
+            }
+        });
+
+        dom.historyList.addEventListener('click', (e) => {
+            const item = e.target.closest('.history-item');
+            if (item) {
+                const index = parseInt(item.dataset.index);
+                const historyReq = history[index];
+                dom.methodSelect.value = historyReq.method;
+                dom.urlInput.value = historyReq.url;
+                dom.requestBody.value = historyReq.body || '';
+                dom.testScriptInput.value = historyReq.tests || '';
+                
+                const auth = historyReq.auth || { type: 'none' };
+                dom.authTypeSelect.value = auth.type;
+                dom.apiKeyHeader.value = auth.header || '';
+                dom.apiKeyValue.value = auth.value || '';
+                dom.bearerToken.value = auth.token || '';
+                dom.authTypeSelect.dispatchEvent(new Event('change'));
+            }
+        });
+
+        dom.sendBtn.addEventListener('click', async () => {
+            const url = dom.urlInput.value;
+            const method = dom.methodSelect.value;
+            
+            if (!url) {
+                dom.responseBody.value = "Error: Please enter a URL.";
+                return;
+            }
+
+            dom.sendBtn.disabled = true;
+            dom.sendBtn.textContent = 'Sending...';
+            dom.responseBody.value = 'Loading...';
+            dom.statusCodeEl.textContent = '';
+            dom.statusCodeEl.style.backgroundColor = 'transparent';
+            dom.aiExplainBtn.disabled = true;
+            dom.aiGenerateTestsBtn.disabled = true;
+
+            const req = { 
+                url, 
+                method, 
+                body: dom.requestBody.value,
+                auth: {
+                    type: dom.authTypeSelect.value,
+                    header: dom.apiKeyHeader.value,
+                    value: dom.apiKeyValue.value,
+                    token: dom.bearerToken.value,
+                },
+                tests: dom.testScriptInput.value
+            };
+            
+            addToHistory(req);
+            const response = await runSingleRequest(req);
+            lastResponse = response; // Save for AI features
+            
+            dom.statusCodeEl.textContent = `${response.status} ${response.statusText}`;
+            dom.statusCodeEl.style.backgroundColor = response.ok ? 'var(--success)' : 'var(--error)';
+            
+            dom.responseBody.value = JSON.stringify(response.data, null, 2);
+            
+            if (response.data) {
+                dom.aiExplainBtn.disabled = false;
+                dom.aiGenerateTestsBtn.disabled = false;
+            }
+
+            dom.sendBtn.disabled = false;
+            dom.sendBtn.textContent = 'Send';
+        });
+        
+        dom.authTypeSelect.addEventListener('change', (e) => {
+            const type = e.target.value;
+            dom.apiKeyInputs.style.display = type === 'api-key' ? 'block' : 'none';
+            dom.bearerInputs.style.display = type === 'bearer' ? 'block' : 'none';
+        });
+        
+        dom.aiExplainBtn.addEventListener('click', async () => {
+            if (!lastResponse) return;
+            dom.explanationContent.textContent = 'AI is thinking...';
+            dom.explainModal.style.display = 'flex';
+
+            const prompt = `Explain this API response in simple English for a junior Quality Analyst. What does status code '${lastResponse.status}' mean? What does the main data signify?\n\nResponse Body:\n${JSON.stringify(lastResponse.data, null, 2)}`;
+            
+            const chatHistory = [{ role: "user", parts: [{ text: prompt }] }];
+            const payload = { contents: chatHistory };
+            const apiKey = "";
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const result = await response.json();
+            const explanation = result.candidates[0].content.parts[0].text;
+            dom.explanationContent.textContent = explanation;
+        });
+        
+        dom.aiGenerateTestsBtn.addEventListener('click', async () => {
+            if (!lastResponse || !lastResponse.ok) return;
+            dom.aiGenerateTestsBtn.disabled = true;
+            dom.aiGenerateTestsBtn.textContent = 'Generating...';
+
+            const prompt = `Based on this JSON response, generate some simple test assertions in the format 'check(condition);'. Check for status code 200, and check if 1-2 important keys exist in the response data. Response Body:\n${JSON.stringify(lastResponse.data, null, 2)}`;
+
+            const chatHistory = [{ role: "user", parts: [{ text: prompt }] }];
+            const payload = { contents: chatHistory };
+            const apiKey = "";
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const result = await response.json();
+            const tests = result.candidates[0].content.parts[0].text.replace(/```javascript/g, '').replace(/```/g, '').trim();
+            dom.testScriptInput.value += (dom.testScriptInput.value ? '\n' : '') + tests;
+            dom.aiGenerateTestsBtn.disabled = false;
+            dom.aiGenerateTestsBtn.textContent = '✨ Generate Tests with AI';
+        });
+        
+        dom.exportBtn.addEventListener('click', () => {
+            if (collections.length === 0) {
+                alert("No requests in the collection to export.");
+                return;
+            }
+            const dataStr = JSON.stringify(collections, null, 2);
+            const dataBlob = new Blob([dataStr], {type: "application/json"});
+            const url = URL.createObjectURL(dataBlob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'api-dost-collection.json';
+            a.click();
+            URL.revokeObjectURL(url);
+        });
+
+        dom.importBtn.addEventListener('click', () => {
+            dom.importFileInput.click();
+        });
+
+        dom.importFileInput.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const importedCollections = JSON.parse(e.target.result);
+                    if (Array.isArray(importedCollections)) {
+                        collections = [...collections, ...importedCollections];
+                        saveCollectionsToStorage();
+                        renderCollections();
+                        alert(`Successfully imported ${importedCollections.length} requests!`);
+                    } else {
+                        alert("Invalid file format.");
+                    }
+                } catch (err) {
+                    alert(`Error importing file: ${err.message}`);
+                }
+            };
+            reader.readAsText(file);
+            dom.importFileInput.value = '';
+        });
+
+        // --- 6. INITIALIZATION ---
+        // Functions that run once the page is loaded.
+        loadCollectionsFromStorage();
+        renderEnvironments();
+        setupTabs(dom.requestTabs);
+        setupTabs(dom.responseTabs);
+    </script>
+</body>
+</html>
